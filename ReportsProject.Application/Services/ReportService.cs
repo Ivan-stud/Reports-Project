@@ -37,46 +37,37 @@ public class ReportService : IReportService
 	/// <inheritdoc/>
 	public async Task<BaseResult<ReportDto>> CreateAsync(CreateReportDto createReportDto)
 	{
-		try
+		var userId = createReportDto.UserId;
+		var reportName = createReportDto.Name;
+		var reportDescription = createReportDto.Description;
+		var foundUser = await _userRpository.GetAll().FirstOrDefaultAsync(user => user.Id == userId);
+		var foundReport = await _reportRepository.GetAll()
+			.FirstOrDefaultAsync(report => report.UserId == userId && report.Name == reportName);
+
+		BaseResult validatedResult = _reportValidator.Validate(foundReport, foundUser);
+
+		if (validatedResult.IsSuccess == false)
 		{
-			var userId = createReportDto.UserId;
-			var reportName = createReportDto.Name;
-			var reportDescription = createReportDto.Description;
-			var foundUser = await _userRpository.GetAll().FirstOrDefaultAsync(user => user.Id == userId);
-			var foundReport = await _reportRepository.GetAll()
-				.FirstOrDefaultAsync(report => report.UserId == userId && report.Name == reportName);
-
-			BaseResult validatedResult = _reportValidator.Validate(foundReport, foundUser);
-
-			if (validatedResult.IsSuccess == false)
+			return new BaseResult<ReportDto>()
 			{
-				return new BaseResult<ReportDto>()
-				{
-					ErrorMessage = validatedResult.ErrorMessage,
-					ErrorCode = validatedResult.ErrorCode
-				};
-			}
-
-			var report = new Report()
-			{
-				Name = reportName,
-				Description = reportDescription,
-				UserId = userId,
+				ErrorMessage = validatedResult.ErrorMessage,
+				ErrorCode = validatedResult.ErrorCode
 			};
-
-			await _reportRepository.CreateAsync(report);
-
-			var reportDto = _mapper.Map<ReportDto>(report);
-			var result = new BaseResult<ReportDto>(){ Data = reportDto };
-
-			return result;
 		}
-		catch (Exception ex)
+
+		var report = new Report()
 		{
-			_logger.Error(ex, ex.Message);
+			Name = reportName,
+			Description = reportDescription,
+			UserId = userId,
+		};
 
-			return GetResultOnException();
-		}
+		await _reportRepository.CreateAsync(report);
+
+		var reportDto = _mapper.Map<ReportDto>(report);
+		var result = new BaseResult<ReportDto>(){ Data = reportDto };
+
+		return result;
 	}
 
 	/// <inheritdoc/>
@@ -84,20 +75,11 @@ public class ReportService : IReportService
 	{
 		ReportDto? reportDto;
 
-		try
-		{
-			reportDto = _reportRepository.GetAll()
-				.AsEnumerable()
-				.Select(report => new ReportDto(report.Id, report.Name, report.Description, report.CreatedAt.ToLongDateString()))
-				.FirstOrDefault(report => report.Id == reportId);
-		}
-		catch (Exception ex)
-		{
-			_logger.Error(ex, ex.Message);
-
-			return Task.FromResult(GetResultOnException());
-		}
-
+		reportDto = _reportRepository.GetAll()
+			.AsEnumerable()
+			.Select(report => new ReportDto(report.Id, report.Name, report.Description, report.CreatedAt.ToLongDateString()))
+			.FirstOrDefault(report => report.Id == reportId);
+		
 		if (reportDto == null)
 		{
 			var warningMessage = ErrorMessage.ReportNotFound;
@@ -124,20 +106,11 @@ public class ReportService : IReportService
 	{
 		ReportDto[] reports;
 
-		try
-		{
-			reports = _reportRepository.GetAll()
-				.Where(report => report.UserId == userId)
-				.AsEnumerable()
-				.Select(report => new ReportDto(report.Id, report.Name, report.Description, report.CreatedAt.ToLongDateString()))
-				.ToArray();
-		}
-		catch (Exception ex)
-		{
-			_logger.Error(ex, ex.Message);
-
-			return Task.FromResult(GetCollectionResultOnException());
-		}
+		reports = _reportRepository.GetAll()
+			.Where(report => report.UserId == userId)
+			.AsEnumerable()
+			.Select(report => new ReportDto(report.Id, report.Name, report.Description, report.CreatedAt.ToLongDateString()))
+			.ToArray();
 
 		if (reports.Length == 0)
 		{
@@ -167,68 +140,50 @@ public class ReportService : IReportService
 	/// <inheritdoc/>
 	public async Task<CollectionResult<ReportDto>> RemoveAsync(int reportId)
 	{
-		try
-		{
-			var foundedReport = _reportRepository.GetAll().FirstOrDefault(report => report.Id == reportId);
-			var validatedReport = _reportValidator.ValidateOnNull(foundedReport);
+		var foundedReport = _reportRepository.GetAll().FirstOrDefault(report => report.Id == reportId);
+		var validatedReport = _reportValidator.ValidateOnNull(foundedReport);
 
-			if (validatedReport.IsSuccess == false)
+		if (validatedReport.IsSuccess == false)
+		{
+			return new CollectionResult<ReportDto>
 			{
-				return new CollectionResult<ReportDto>
-				{
-					ErrorMessage = validatedReport.ErrorMessage,
-					ErrorCode = validatedReport.ErrorCode
-				};
-			}
-
-			int userId = foundedReport!.UserId;
-			await _reportRepository.RemoveAsync(foundedReport!);
-			var result = GetAllAsync(userId);
-
-			return await result;
+				ErrorMessage = validatedReport.ErrorMessage,
+				ErrorCode = validatedReport.ErrorCode
+			};
 		}
-		catch (Exception ex)
-		{
-			_logger.Error(ex, ex.Message);
 
-			return GetCollectionResultOnException();
-		}
+		int userId = foundedReport!.UserId;
+		await _reportRepository.RemoveAsync(foundedReport!);
+		var result = GetAllAsync(userId);
+
+		return await result;
 	}
 
 	public async Task<BaseResult<ReportDto>> UpdateAsync(UpdateReportDto updateReportDto)
 	{
-		try
+		var foundedReport = await _reportRepository.GetAll()
+			.FirstOrDefaultAsync(report => report.Id == updateReportDto.Id);
+
+		var validatedReport = _reportValidator.ValidateOnNull(foundedReport);
+
+		if (validatedReport.IsSuccess == false)
 		{
-			var foundedReport = await _reportRepository.GetAll()
-				.FirstOrDefaultAsync(report => report.Id == updateReportDto.Id);
-
-			var validatedReport = _reportValidator.ValidateOnNull(foundedReport);
-
-			if (validatedReport.IsSuccess == false)
+			return new BaseResult<ReportDto>
 			{
-				return new BaseResult<ReportDto>
-				{
-					ErrorMessage = validatedReport.ErrorMessage,
-					ErrorCode = validatedReport.ErrorCode
-				};
-			}
-
-			foundedReport!.Name = updateReportDto.Name;
-			foundedReport!.Description = updateReportDto.Description;
-
-			await _reportRepository.UpdateAsync(foundedReport);
-
-			var reportDto = _mapper.Map<ReportDto>(foundedReport);
-			var result = new BaseResult<ReportDto> { Data = reportDto };
-
-			return result;
+				ErrorMessage = validatedReport.ErrorMessage,
+				ErrorCode = validatedReport.ErrorCode
+			};
 		}
-		catch (Exception ex)
-		{
-			_logger.Error(ex, ex.Message);
 
-			return GetResultOnException();
-		}
+		foundedReport!.Name = updateReportDto.Name;
+		foundedReport!.Description = updateReportDto.Description;
+
+		await _reportRepository.UpdateAsync(foundedReport);
+
+		var reportDto = _mapper.Map<ReportDto>(foundedReport);
+		var result = new BaseResult<ReportDto> { Data = reportDto };
+
+		return result;
 	}
 
 	private static BaseResult<ReportDto> GetResultOnException()

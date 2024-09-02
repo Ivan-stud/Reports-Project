@@ -40,77 +40,65 @@ public class AuthService : IAuthService
 
 	public async Task<BaseResult<TokenDto>> Login(LoginUserDto loginDto)
 	{
-		try
+		var foundUser = await _userRepository.GetAll()
+			.FirstOrDefaultAsync(user => user.Login == loginDto.Login);
+
+		if (foundUser == null)
 		{
-			var foundUser = await _userRepository.GetAll()
-				.FirstOrDefaultAsync(user => user.Login == loginDto.Login);
-
-			if (foundUser == null)
-			{
-				return new BaseResult<TokenDto>
-				{
-					ErrorMessage = ErrorMessage.UserNotFound,
-					ErrorCode = (int)ErrorCodes.UserNotFound
-				};
-			}
-
-			if (IsVerifyPassword(foundUser.PasswordHash, loginDto.Password) == false)
-			{
-				return new BaseResult<TokenDto>
-				{
-					ErrorMessage = ErrorMessage.PasswordIsWrong,
-					ErrorCode = (int)ErrorCodes.PasswordIsWrong
-				};
-			}
-
-			var claims = new List<Claim>
-			{
-				new (ClaimTypes.Name, foundUser.Login),
-				new (ClaimTypes.Role, "User"),
-			};
-
-			var refreshToken = _userTokenService.GenerateRefreshToken();
-			var accessToken = _userTokenService.GenerateAccessToken(claims);
-			var userToken = await _userTokenRepository.GetAll()
-				.FirstOrDefaultAsync(token => token.UserId == foundUser.Id);
-
-			if (userToken == null)
-			{
-				userToken = new()
-				{
-					UserId = foundUser.Id,
-					RefreshToken = refreshToken,
-					RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7),
-				};
-
-				await _userTokenRepository.CreateAsync(userToken);
-			}
-			else
-			{
-				userToken.RefreshToken = refreshToken;
-				userToken.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-
-				await _userTokenRepository.UpdateAsync(userToken);
-			}
-			
 			return new BaseResult<TokenDto>
 			{
-				Data = new TokenDto()
-				{
-					RefreshToken = refreshToken,
-					AccessToken = accessToken
-				}
+				ErrorMessage = ErrorMessage.UserNotFound,
+				ErrorCode = (int)ErrorCodes.UserNotFound
+			};
+		}
+
+		if (IsVerifyPassword(foundUser.PasswordHash, loginDto.Password) == false)
+		{
+			return new BaseResult<TokenDto>
+			{
+				ErrorMessage = ErrorMessage.PasswordIsWrong,
+				ErrorCode = (int)ErrorCodes.PasswordIsWrong
+			};
+		}
+
+		var claims = new List<Claim>
+		{
+			new (ClaimTypes.Name, foundUser.Login),
+			new (ClaimTypes.Role, "User"),
+		};
+
+		var refreshToken = _userTokenService.GenerateRefreshToken();
+		var accessToken = _userTokenService.GenerateAccessToken(claims);
+		var userToken = await _userTokenRepository.GetAll()
+			.FirstOrDefaultAsync(token => token.UserId == foundUser.Id);
+
+		if (userToken == null)
+		{
+			userToken = new()
+			{
+				UserId = foundUser.Id,
+				RefreshToken = refreshToken,
+				RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7),
 			};
 
+			await _userTokenRepository.CreateAsync(userToken);
 		}
-		catch (Exception ex)
+		else
 		{
-			_logger.Error(ex, ex.Message);
+			userToken.RefreshToken = refreshToken;
+			userToken.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
 
-
-
-			throw;
+			await _userTokenRepository.UpdateAsync(userToken);
 		}
+			
+		return new BaseResult<TokenDto>
+		{
+			Data = new TokenDto()
+			{
+				RefreshToken = refreshToken,
+				AccessToken = accessToken
+			}
+		};
 	}
 
 	public async Task<BaseResult<UserDto>> Register(RegisterUserDto registerDto)
@@ -124,47 +112,34 @@ public class AuthService : IAuthService
 			};
 		}
 
-		try
+		var foundUser = await _userRepository.GetAll()
+			.FirstOrDefaultAsync(user => user.Login == registerDto.Login);
+
+		if (foundUser != null)
 		{
-			var foundUser = await _userRepository.GetAll()
-				.FirstOrDefaultAsync(user => user.Login == registerDto.Login);
-
-			if (foundUser != null)
-			{
-				return new BaseResult<UserDto>
-				{
-					ErrorMessage = ErrorMessage.UserAlreadyExists,
-					ErrorCode = (int)ErrorCodes.UserAlreadyExists
-				};
-			}
-
-			var passwordHash = HashPassword(registerDto.Password);
-
-			var newUser = new User
-			{
-				Login = registerDto.Login,
-				PasswordHash = passwordHash
-			};
-
-			await _userRepository.CreateAsync(newUser);
-
 			return new BaseResult<UserDto>
 			{
-				Data = _mapper.Map<UserDto>(newUser)
+				ErrorMessage = ErrorMessage.UserAlreadyExists,
+				ErrorCode = (int)ErrorCodes.UserAlreadyExists
 			};
 		}
-		catch (Exception ex)
+
+		var passwordHash = HashPassword(registerDto.Password);
+
+		var newUser = new User
 		{
-			_logger.Error(ex, ex.Message);
+			Login = registerDto.Login,
+			PasswordHash = passwordHash
+		};
 
-			return new BaseResult<UserDto>
-			{
-				ErrorMessage = ErrorMessage.InternalServerError,
-				ErrorCode = (int)ErrorCodes.InternalServerError
-			};
+		await _userRepository.CreateAsync(newUser);
 
-			throw;
-		}
+		return new BaseResult<UserDto>
+		{
+			Data = _mapper.Map<UserDto>(newUser)
+		};
+
+		
 	}
 
 	private string HashPassword(string password)
