@@ -12,6 +12,7 @@ public enum ErrorCodes : int
 	PasswordNotEqualsPasswordConfirm = 21,
 	PasswordIsWrong = 22,
 	UserAlreadyExists = 23,
+	UserUnauthirizedAccess = 24,
 
 	InvalidClientRequest = 30
 }

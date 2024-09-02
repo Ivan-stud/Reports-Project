@@ -2,6 +2,7 @@ using ReportsProject.DAL.DependencyInjection;
 using ReportsProject.Application.DependencyInjection;
 using Serilog;
 using ReportsProject.Domain.Settings;
+using ReportsProject.API.Middlewares;
 
 namespace ReportsProject.API
 {
@@ -29,6 +30,8 @@ namespace ReportsProject.API
 			builder.Services.AddAuthenticationAndAuthorization(builder);
 
 			var app = builder.Build();
+
+			app.UseMiddleware<AppExceptionHandlerMiddleware>();
 
 			if (app.Environment.IsDevelopment())
 			{
