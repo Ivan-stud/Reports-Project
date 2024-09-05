@@ -138,8 +138,6 @@ public class AuthService : IAuthService
 		{
 			Data = _mapper.Map<UserDto>(newUser)
 		};
-
-		
 	}
 
 	private string HashPassword(string password)
@@ -155,6 +153,5 @@ public class AuthService : IAuthService
 		var hash = HashPassword(password);
 
 		return hash == passwordHash;
-
 	}
 }

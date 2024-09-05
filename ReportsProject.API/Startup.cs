@@ -39,7 +39,6 @@ public static class Startup
 				ValidateIssuerSigningKey = true,
 				ValidateLifetime = true
 			};
-
 		});
 	}
 
@@ -112,7 +111,5 @@ public static class Startup
 			var xmlFileName = Assembly.GetExecutingAssembly().GetName().Name + ".xml";
 			options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFileName));
 		});
-
-		
 	}
 }

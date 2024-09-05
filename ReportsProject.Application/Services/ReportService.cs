@@ -159,6 +159,7 @@ public class ReportService : IReportService
 		return await result;
 	}
 
+	/// <inheritdoc/>
 	public async Task<BaseResult<ReportDto>> UpdateAsync(UpdateReportDto updateReportDto)
 	{
 		var foundedReport = await _reportRepository.GetAll()
@@ -184,27 +185,5 @@ public class ReportService : IReportService
 		var result = new BaseResult<ReportDto> { Data = reportDto };
 
 		return result;
-	}
-
-	private static BaseResult<ReportDto> GetResultOnException()
-	{
-		var errorResult = new BaseResult<ReportDto>()
-		{
-			ErrorMessage = ErrorMessage.InternalServerError,
-			ErrorCode = (int)ErrorCodes.InternalServerError
-		};
-
-		return errorResult;
-	}
-
-	private static CollectionResult<ReportDto> GetCollectionResultOnException()
-	{
-		var errorResult = new CollectionResult<ReportDto>()
-		{
-			ErrorMessage = ErrorMessage.InternalServerError,
-			ErrorCode = (int)ErrorCodes.InternalServerError
-		};
-
-		return errorResult;
 	}
 }

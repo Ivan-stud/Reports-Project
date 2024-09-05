@@ -33,6 +33,11 @@ namespace ReportsProject.API.Controllers
 			return BadRequest(response);
 		}
 
+		/// <summary>
+		/// Авторизация пользователя
+		/// </summary>
+		/// <param name="loginUserDto"></param>
+		/// <returns></returns>
 		[HttpPost("login")]
 		public async Task<ActionResult<BaseResult<TokenDto>>> Login([FromBody] LoginUserDto loginUserDto)
 		{

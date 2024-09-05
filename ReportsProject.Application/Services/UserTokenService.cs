@@ -11,7 +11,6 @@ using ReportsProject.Domain.Models;
 using ReportsProject.Domain.Results;
 using ReportsProject.Domain.Settings;
 using System.IdentityModel.Tokens.Jwt;
-using System.Net.Http.Headers;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -21,7 +20,6 @@ namespace ReportsProject.Application.Services;
 public class UserTokenService : IUserTokenService
 {
 	private readonly IBaseRepository<User> _userRepository;
-
 
 	private readonly string _jwtKey;
 	private readonly string _issuer;
@@ -82,8 +80,6 @@ public class UserTokenService : IUserTokenService
 		}
 
 		return claimsPrincipal;
-			
-			
 	}
 
 	public async Task<BaseResult<TokenDto>> RefreshToken(TokenDto tokenDto)

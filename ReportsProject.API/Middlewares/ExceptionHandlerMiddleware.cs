@@ -1,6 +1,4 @@
-﻿using ReportsProject.Domain.Enums;
-using ReportsProject.Domain.Results;
-using Serilog;
+﻿using ReportsProject.Domain.Results;
 using System.Net;
 
 namespace ReportsProject.API.Middlewares;
@@ -25,7 +23,6 @@ public class AppExceptionHandlerMiddleware
 		catch (Exception ex)
 		{
 			await HandleExceptionAsync(context, ex);
-			
 		}
 	}
 
